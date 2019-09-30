@@ -1,5 +1,7 @@
 const postsCollection = require("../db").db().collection("posts")
-const { ObjectID } = require('mongodb');
+const {
+    ObjectID
+} = require('mongodb');
 const User = require("./User")
 let Post = function (data, _id) {
 
@@ -94,10 +96,10 @@ Post.findSingleById = function (id) {
 
             //clean up author property
             console.log(posts)
-            posts = posts.map(function(post) {
+            posts = posts.map(function (post) {
                 post.author = {
-                    username : post.author.username,
-                    avatar : new User(post.author, true).avatar
+                    username: post.author.username,
+                    avatar: new User(post.author, true).avatar
                 }
                 return post
             })
@@ -111,6 +113,43 @@ Post.findSingleById = function (id) {
         }
     })
 }
+Post.reusablePostQuery = function (uniqueOperations) {
+    return new Promise(async function (resolve, reject) {
+        let aggOperations = uniqueOperations.concat([{
+            $lookup: {
+                from: "users",
+                localField: "author",
+                foreignField: "_id",
+                as: "authorDocument",
+
+            }
+        },
+        {
+            $project: {
+                title: 1,
+                body: 1,
+                createdDate: 1,
+                author: {
+                    $arrayElemAt: ["$authorDocument", 0]
+                }
+            }
+        }])
+        let posts = await postsCollection.aggregate(aggOperations).toArray()
+
+        //clean up author property
+        console.log(posts)
+        posts = posts.map(function (post) {
+            post.author = {
+                username: post.author.username,
+                avatar: new User(post.author, true).avatar
+            }
+            return post
+        })
+        resolve(posts)
+    })
+}
+
+
 
 
 module.exports = Post

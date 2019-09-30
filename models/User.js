@@ -1,14 +1,14 @@
 const validator = require("validator")
 const usersCollection = require('../db').db().collection('users')
 const bcrypt = require("bcryptjs")
-const md5 =require('md5')
+const md5 = require('md5')
 let User = function (data, getAvatarURL) {
     this.data = data
     this.errors = []
-    if(getAvatarURL == undefined){
+    if (getAvatarURL == undefined) {
         getAvatarURL = false
     }
-    if(getAvatarURL){
+    if (getAvatarURL) {
         this.getAvatar()
     }
 }
@@ -115,11 +115,11 @@ User.prototype.register = function () {
             usersCollection.insertOne(this.data)
             this.getAvatar()
             resolve()
-        }else{
+        } else {
             reject(this.errors)
         }
 
-        
+
 
     })
 }
@@ -146,9 +146,42 @@ User.prototype.login = function () {
 
 }
 
-User.prototype.getAvatar =  function() {
-    
+User.prototype.getAvatar = function () {
+
     this.avatar = `https://gravatar.com/avatar/${md5(this.data.email)}?s=128`
 }
 
+User.findByUserName = function (username) {
+    return new Promise((resolve, reject) => {
+        if (typeof (username) != "string") {
+            reject()
+            return
+        }
+
+        usersCollection.findOne({
+            username: username
+        })
+        .then((userDoc) => {
+
+            
+
+            if (userDoc) {
+                userDoc = new User(userDoc, true)
+                
+                userDoc = {
+                    _id : userDoc.data._id,
+                    username: userDoc.data.username,
+                    avatar : userDoc.avatar
+                }
+            resolve(userDoc)
+            
+            } else {
+                reject()
+            }
+
+        }).catch(() => {
+            reject()
+        })
+    });
+}
 module.exports = User
